@@ -1,6 +1,6 @@
-# KipuBank — V2 (Student Project)
+# KipuBank — V2
 
-[![Open in Remix](https://img.shields.io/badge/Open%20in-Remix-2E9AFE?logo=ethereum&logoColor=white)](https://remix.ethereum.org/#github=renatoribeiroqc/kipu-bank)
+[![Open in Remix](https://img.shields.io/badge/Open%20in-Remix-2E9AFE?logo=ethereum&logoColor=white)](https://remix.ethereum.org/#github=renatoribeiroqc/kipu-bank-v2)
 **Live Demo (GitHub Pages):** https://renatoribeiroqc.github.io/kipu-bank-v2/  
 *(mobile-first UI under `/docs`)*
   
