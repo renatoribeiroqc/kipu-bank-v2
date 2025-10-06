@@ -22,10 +22,9 @@ pragma solidity ^0.8.24;
 import {AccessControl} from "@openzeppelin/contracts/access/AccessControl.sol";
 import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import {IERC20Metadata} from "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
-/// @dev Minimal Chainlink Aggregator interface.
+/// @dev Minimal Chainlink Aggregator v3 interface kept for type usage in storage/ctor.
 interface AggregatorV3Interface {
     function decimals() external view returns (uint8);
     function latestRoundData()
@@ -38,6 +37,12 @@ interface AggregatorV3Interface {
             uint256 updatedAt,
             uint80 answeredInRound
         );
+}
+
+/// @dev Legacy-like interface exposing latestAnswer(); many feeds (incl. Sepolia) support this.
+interface AggregatorV2V3Like {
+    function latestAnswer() external view returns (int256);
+    function decimals() external view returns (uint8);
 }
 
 /**
@@ -180,18 +185,22 @@ contract KipuBank is AccessControl, ReentrancyGuard {
     }
 
     /**
-     * @notice Convert a token amount to USD-6 using the configured Chainlink feed.
+     * @notice Convert a token amount to USD-6 using Chainlink `latestAnswer()` (legacy accessor).
      * @dev Reverts if token disabled, feed unset, or negative price.
+     *      We keep the feed typed as AggregatorV3Interface in storage, but cast to a
+     *      legacy-compatible interface here to call `latestAnswer()` explicitly.
      */
     function quoteToUsd6(address token, uint256 amountToken) public view returns (uint256 usd6) {
         TokenConfig memory cfg = tokenConfig[token];
         if (!cfg.enabled) revert TokenDisabled(token);
         if (address(cfg.feed) == address(0)) revert PriceFeedNotSet(token);
 
-        (, int256 answer,,,) = cfg.feed.latestRoundData();
+        AggregatorV2V3Like feed = AggregatorV2V3Like(address(cfg.feed));
+
+        int256 answer = feed.latestAnswer(); // <— uses latestAnswer() as requested
         if (answer <= 0) revert NegativePrice(token);
 
-        uint8 feedDec = cfg.feed.decimals();
+        uint8 feedDec = feed.decimals();
         uint8 tokDec = token == ETH_ADDRESS ? 18 : cfg.decimals;
 
         // usd6 = amount * price * 10^USD_DECIMALS / (10^tokDec * 10^feedDec)
